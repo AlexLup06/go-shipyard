@@ -17,8 +17,8 @@ This repository provides a solid foundation for building and deploying Go applic
 Clone the repository and initialize the project:
 
 ```bash
-git clone <your-repo>
-cd <your-repo>
+git clone https://github.com/AlexLup06/go-shipyard 
+cd https://github.com/AlexLup06/go-shipyard
 
 ./init.sh \
   --module=github.com/your-org/your-app \
