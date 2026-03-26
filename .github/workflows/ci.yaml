@@ -129,13 +129,17 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build frontend
+      - name: Build Tailwind CSS
         working-directory: frontend
-        run: npm run build
+        run: npm run build:tailwind
 
       - name: Check formatting
         working-directory: frontend
         run: npm run format:check
+
+      - name: Build frontend bundle
+        working-directory: frontend
+        run: npm run build:webpack
 
   # ------------------------------------------------------------
   # Docker build (main branch only)
