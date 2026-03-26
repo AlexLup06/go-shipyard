@@ -55,6 +55,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   find . -type f \
     \( \
       -name "*.go" -o \
+      -name ".env*" -o \
       -name "go.mod" -o \
       -name "*.yaml" -o \
       -name "*.yml" -o \
@@ -75,6 +76,7 @@ else
   find . -type f \
     \( \
       -name "*.go" -o \
+      -name ".env*" -o \
       -name "go.mod" -o \
       -name "*.yaml" -o \
       -name "*.yml" -o \
