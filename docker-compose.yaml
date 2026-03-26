@@ -8,7 +8,7 @@ services:
     command: npm run dev:webpack
 
   postgres:
-    image: postgres:16
+    image: postgres:16.2
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRESQL_DATABASE}
