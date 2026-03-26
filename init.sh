@@ -95,7 +95,7 @@ fi
 go mod tidy
 
 if [ -d "frontend" ]; then
-  (cd frontend && npm install)
+  (cd frontend && npm ci)
 fi
 
 echo "✅ Project initialized successfully."
