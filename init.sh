@@ -52,29 +52,44 @@ fi
 
 # Replace placeholders
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  SED="sed -i ''"
+  find . -type f \
+    \( \
+      -name "*.go" -o \
+      -name "go.mod" -o \
+      -name "*.yaml" -o \
+      -name "*.yml" -o \
+      -name "*.json" -o \
+      -name "*.sh" -o \
+      -name "Dockerfile" -o \
+      -name "Makefile" -o \
+      -name "Caddyfile" -o \
+      -name "*.md" \
+    \) \
+    -exec sed -i '' \
+      "s|__MODULE__|$MODULE|g; \
+       s|__APP_SLUG__|$APP_SLUG|g; \
+       s|__IMAGE_REPOSITORY__|$IMAGE_REPOSITORY|g" \
+    {} +
 else
-  SED="sed -i"
+  find . -type f \
+    \( \
+      -name "*.go" -o \
+      -name "go.mod" -o \
+      -name "*.yaml" -o \
+      -name "*.yml" -o \
+      -name "*.json" -o \
+      -name "*.sh" -o \
+      -name "Dockerfile" -o \
+      -name "Makefile" -o \
+      -name "Caddyfile" -o \
+      -name "*.md" \
+    \) \
+    -exec sed -i \
+      "s|__MODULE__|$MODULE|g; \
+       s|__APP_SLUG__|$APP_SLUG|g; \
+       s|__IMAGE_REPOSITORY__|$IMAGE_REPOSITORY|g" \
+    {} +
 fi
-
-find . -type f \
-  \( \
-    -name "*.go" -o \
-    -name "go.mod" -o \
-    -name "*.yaml" -o \
-    -name "*.yml" -o \
-    -name "*.json" -o \
-    -name "*.sh" -o \
-    -name "Dockerfile" -o \
-    -name "Makefile" -o \
-    -name "Caddyfile" -o \
-    -name "*.md" \
-  \) \
-  -exec $SED \
-    "s|__MODULE__|$MODULE|g; \
-     s|__APP_SLUG__|$APP_SLUG|g; \
-     s|__IMAGE_REPOSITORY__|$IMAGE_REPOSITORY|g" \
-  {} +
 
 # Go cleanup
 go mod tidy
