@@ -60,10 +60,11 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
       -name "*.yml" -o \
       -name "*.json" -o \
       -name "*.sh" -o \
-      -name "Dockerfile" -o \
+      -name "Dockerfile*" -o \
       -name "Makefile" -o \
       -name "Caddyfile" -o \
-      -name "*.md" \
+      -name "*.md" -o \
+      -name "*.sql" \
     \) \
     -exec sed -i '' \
       "s|__MODULE__|$MODULE|g; \
@@ -82,7 +83,7 @@ else
       -name "Dockerfile*" -o \
       -name "Makefile" -o \
       -name "Caddyfile" -o \
-      -name "*.md" \
+      -name "*.md" -o \
       -name "*.sql" \
     \) \
     -exec sed -i \
