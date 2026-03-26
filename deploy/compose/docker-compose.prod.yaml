@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16
+    image: postgres:16.2
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRESQL_DATABASE}
@@ -14,42 +14,63 @@ services:
       timeout: 5s
       retries: 5
 
-  migrate:
-    image: __IMAGE_REPOSITORY__-migrate:${MIGRATIONS_IMAGE_TAG}
+  authara-migrations:
+    image: ghcr.io/authara-org/authara-migrations:latest
     env_file:
       - .env
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["up", "-env=default", "-config=/app/migrations/dbconfig.yaml"]
+    command: ["up", "-env=default", "-config=dbconfig.yaml"]
     restart: "no"
 
-
-  app:
-    image: __IMAGE_REPOSITORY__:${APP_IMAGE_TAG}
-    restart: unless-stopped
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
+  authara:
+    image: ghcr.io/authara-org/authara-core:latest
     env_file:
       - .env
+    depends_on:
+      authara-migrations:
+        condition: service_completed_successfully
+    restart: unless-stopped
     expose:
       - "8080"
 
-  caddy:
-    image: caddy:2.10
-    restart: unless-stopped
+  migrate:
+    image: __IMAGE_REPOSITORY__-migrations:${MIGRATIONS_IMAGE_TAG}
+    env_file:
+      - .env
     depends_on:
-      - app
+      postgres:
+        condition: service_healthy
+      authara-migrations:
+        condition: service_completed_successfully
+    command: ["up", "-env=default", "-config=/app/migrations/dbconfig.yaml"]
+    restart: "no"
+
+  __APP_SLUG__:
+    image: __IMAGE_REPOSITORY__:${APP_IMAGE_TAG}
+    env_file:
+      - .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    expose:
+      - "8080"
+
+  gateway:
+    image: ghcr.io/authara-org/authara-gateway:latest
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+    environment:
+      GATEWAY_BIND: :80
+      AUTHARA_UPSTREAM: authara:8080
+      APP_UPSTREAM: __APP_SLUG__:8080
+    depends_on:
+      - authara
+      - __APP_SLUG__
 
 volumes:
   postgres_data:
-  caddy_data:
-  caddy_config:
