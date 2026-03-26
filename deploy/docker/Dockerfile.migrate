@@ -1,0 +1,16 @@
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /src
+
+RUN go install github.com/rubenv/sql-migrate/sql-migrate@latest
+
+FROM alpine:3.21
+
+WORKDIR /app/migrations
+
+RUN apk add --no-cache ca-certificates
+
+COPY --from=builder /go/bin/sql-migrate /usr/local/bin/sql-migrate
+COPY migrations ./
+
+ENTRYPOINT ["sql-migrate"]

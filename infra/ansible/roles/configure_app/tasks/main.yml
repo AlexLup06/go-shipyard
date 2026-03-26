@@ -1,0 +1,20 @@
+- name: Create app directory
+  file:
+    path: "{{ deploy_path }}"
+    state: directory
+    mode: "0755"
+
+- name: Upload .env
+  copy:
+    src: "{{ playbook_dir }}/../../deploy/env/.env.prod"
+    dest: "{{ deploy_path }}/.env"
+
+- name: Upload compose file
+  copy:
+    src: "{{ playbook_dir }}/../../deploy/compose/docker-compose.prod.yaml"
+    dest: "{{ deploy_path }}/docker-compose.prod.yaml"
+
+- name: Upload Caddyfile
+  copy:
+    src: "{{ playbook_dir }}/../../deploy/caddy/Caddyfile"
+    dest: "{{ deploy_path }}/Caddyfile"

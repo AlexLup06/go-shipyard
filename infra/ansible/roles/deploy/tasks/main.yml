@@ -1,0 +1,9 @@
+- name: Pull latest images
+  command:
+    cmd: docker compose -f docker-compose.prod.yaml --env-file .env pull
+    chdir: "{{ deploy_path }}"
+
+- name: Start or update full stack
+  command:
+    cmd: docker compose -f docker-compose.prod.yaml --env-file .env up -d
+    chdir: "{{ deploy_path }}"

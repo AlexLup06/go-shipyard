@@ -1,0 +1,4 @@
+- hosts: app_servers
+  become: true
+  roles:
+    - bootstrap
