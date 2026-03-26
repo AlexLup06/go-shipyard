@@ -33,6 +33,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      authara-migrations:
+        condition: service_completed_successfully
     command: ["up", "-env=default", "-config=/app/migrations/dbconfig.yaml"]
     restart: "no"
 
