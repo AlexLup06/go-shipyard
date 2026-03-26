@@ -62,7 +62,7 @@ jobs:
         run: |
           docker build \
             -f deploy/docker/Dockerfile.migrate \
-            -t "${APP_SLUG}-migrations:test" \
+            -t "example-migrations:test" \
             .
 
       - name: Apply database migrations
@@ -75,7 +75,7 @@ jobs:
             -e POSTGRESQL_USERNAME \
             -e POSTGRESQL_PASSWORD \
             -e POSTGRESQL_SCHEMA \
-            "${APP_SLUG}-migrations:test" \
+            "example-migrations:test" \
             up \
             -env=default \
             -config=./dbconfig.yaml
