@@ -8,8 +8,6 @@ on:
 env:
   GO_VERSION: "1.25.1"
   NODE_VERSION: "24"
-  APP_SLUG: example
-  IMAGE_REPOSITORY: ghcr.io/example/example
 
 jobs:
   # ------------------------------------------------------------
@@ -22,13 +20,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: ${{ env.APP_SLUG }}_test
-          POSTGRES_USER: ${{ env.APP_SLUG }}
-          POSTGRES_PASSWORD: ${{ env.APP_SLUG }}
+          POSTGRES_DB: __APP_SLUG___test
+          POSTGRES_USER: __APP_SLUG__ 
+          POSTGRES_PASSWORD: __APP_SLUG__ 
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U ${{ env.APP_SLUG }} -d ${{ env.APP_SLUG }}_test"
+          --health-cmd="pg_isready -U __APP_SLUG__ -d __APP_SLUG___test"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -36,10 +34,10 @@ jobs:
     env:
       POSTGRESQL_HOST: localhost
       POSTGRESQL_PORT: 5432
-      POSTGRESQL_DATABASE: ${{ env.APP_SLUG }}_test
-      POSTGRESQL_USERNAME: ${{ env.APP_SLUG }}
-      POSTGRESQL_PASSWORD: ${{ env.APP_SLUG }}
-      POSTGRESQL_SCHEMA: ${{ env.APP_SLUG }}
+      POSTGRESQL_DATABASE: __APP_SLUG___test
+      POSTGRESQL_USERNAME: __APP_SLUG__ 
+      POSTGRESQL_PASSWORD: __APP_SLUG__ 
+      POSTGRESQL_SCHEMA: __APP_SLUG__ 
       POSTGRESQL_TIMEZONE: UTC
       POSTGRESQL_LOG_SQL: false
 
@@ -55,7 +53,7 @@ jobs:
 
       - name: Wait for Postgres
         run: |
-          until pg_isready -h localhost -p 5432 -U "${APP_SLUG}" -d "${APP_SLUG}_test"; do
+          until pg_isready -h localhost -p 5432 -U __APP_SLUG__ -d __APP_SLUG___test"; do
             echo "waiting for postgres..."
             sleep 2
           done
@@ -159,4 +157,4 @@ jobs:
           context: .
           file: deploy/docker/Dockerfile
           push: false
-          tags: ${{ env.IMAGE_REPOSITORY }}:ci
+          tags: ghcr.io/example/example:ci
