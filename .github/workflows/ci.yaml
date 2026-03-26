@@ -8,6 +8,8 @@ on:
 env:
   GO_VERSION: "1.25.1"
   NODE_VERSION: "24"
+  APP_SLUG: example
+  IMAGE_REPOSITORY: ghcr.io/example/example
 
 jobs:
   # ------------------------------------------------------------
@@ -20,32 +22,27 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: __APP_SLUG___test
-          POSTGRES_USER: __APP_SLUG__
-          POSTGRES_PASSWORD: __APP_SLUG__
+          POSTGRES_DB: ${{ env.APP_SLUG }}_test
+          POSTGRES_USER: ${{ env.APP_SLUG }}
+          POSTGRES_PASSWORD: ${{ env.APP_SLUG }}
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U __APP_SLUG__ -d __APP_SLUG___test"
+          --health-cmd="pg_isready -U ${{ env.APP_SLUG }} -d ${{ env.APP_SLUG }}_test"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
 
     env:
-      APP_ENV: dev
-      PUBLIC_URL: http://localhost
       POSTGRESQL_HOST: localhost
       POSTGRESQL_PORT: 5432
-      POSTGRESQL_DATABASE: __APP_SLUG___test
-      POSTGRESQL_USERNAME: __APP_SLUG__
-      POSTGRESQL_PASSWORD: __APP_SLUG__
-      POSTGRESQL_SCHEMA: __APP_SLUG__
+      POSTGRESQL_DATABASE: ${{ env.APP_SLUG }}_test
+      POSTGRESQL_USERNAME: ${{ env.APP_SLUG }}
+      POSTGRESQL_PASSWORD: ${{ env.APP_SLUG }}
+      POSTGRESQL_SCHEMA: ${{ env.APP_SLUG }}
       POSTGRESQL_TIMEZONE: UTC
       POSTGRESQL_LOG_SQL: false
-      POSTGRESQL_MAX_OPEN_CONNS: 25
-      POSTGRESQL_MAX_IDLE_CONNS: 25
-      POSTGRESQL_CONN_MAX_LIFETIME: 5m
-      POSTGRESQL_CONN_MAX_IDLE_TIME: 5m
+
 
     steps:
       - name: Checkout
@@ -58,7 +55,7 @@ jobs:
 
       - name: Wait for Postgres
         run: |
-          until pg_isready -h localhost -p 5432 -U __APP_SLUG__ -d __APP_SLUG___test; do
+          until pg_isready -h localhost -p 5432 -U "${APP_SLUG}" -d "${APP_SLUG}_test"; do
             echo "waiting for postgres..."
             sleep 2
           done
@@ -67,7 +64,7 @@ jobs:
         run: |
           docker build \
             -f deploy/docker/Dockerfile.migrate \
-            -t __APP_SLUG__-migrations:test \
+            -t "${APP_SLUG}-migrations:test" \
             .
 
       - name: Apply database migrations
@@ -80,10 +77,10 @@ jobs:
             -e POSTGRESQL_USERNAME \
             -e POSTGRESQL_PASSWORD \
             -e POSTGRESQL_SCHEMA \
-            __APP_SLUG__-migrations:test \
+            "${APP_SLUG}-migrations:test" \
             up \
             -env=default \
-            -config=/app/migrations/dbconfig.yaml
+            -config=./dbconfig.yaml
 
       - name: Install goimports
         run: go install golang.org/x/tools/cmd/goimports@v0.41.0
@@ -162,4 +159,4 @@ jobs:
           context: .
           file: deploy/docker/Dockerfile
           push: false
-          tags: __IMAGE_REPOSITORY__:ci
+          tags: ${{ env.IMAGE_REPOSITORY }}:ci

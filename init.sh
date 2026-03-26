@@ -68,6 +68,8 @@ find . -type f \
     "s|__MODULE__|$MODULE|g; \
      s|__APP_SLUG__|$APP_SLUG|g; \
      s|__IMAGE_REPOSITORY__|$IMAGE_REPOSITORY|g" \
+     s|APP_SLUG: example|APP_SLUG: $APP_SLUG|g; \
+     s|IMAGE_REPOSITORY: ghcr.io/example/example|IMAGE_REPOSITORY: $IMAGE_REPOSITORY|g" \
   {} +
 
 # Go cleanup
