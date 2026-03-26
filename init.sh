@@ -94,6 +94,8 @@ fi
 # Go cleanup
 go mod tidy
 
+cd frontend && npm instal && cd ..
+
 echo "✅ Project initialized successfully."
 
 # Delete this script after successful init
