@@ -28,6 +28,13 @@ COPY . .
 RUN templ generate
 COPY --from=frontend-builder /app/frontend/dist ./internal/http/static
 
+RUN apk add --no-cache brotli gzip jq coreutils
+
+COPY deploy/scripts/build_static.sh /usr/local/bin/build-static
+RUN chmod +x /usr/local/bin/build-static \
+ && /usr/local/bin/build-static /app/internal/http/static \
+ && chmod -R a+rX /app/internal/http/static
+
 ARG VERSION=dev
 ARG TARGETOS
 ARG TARGETARCH
@@ -38,7 +45,7 @@ RUN CGO_ENABLED=0 \
   go build \
   -ldflags "-X main.Version=${VERSION}" \
   -o /app/__APP_SLUG__ \
-  ./cmd/app
+  ./cmd/__APP_SLUG__
 
 
 FROM gcr.io/distroless/base-debian12
