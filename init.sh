@@ -51,6 +51,12 @@ if [ -d "cmd/__APP_SLUG__" ]; then
 fi
 
 # Replace placeholders
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  SED="sed -i ''"
+else
+  SED="sed -i"
+fi
+
 find . -type f \
   \( \
     -name "*.go" -o \
@@ -64,7 +70,7 @@ find . -type f \
     -name "Caddyfile" -o \
     -name "*.md" \
   \) \
-  -exec sed -i \
+  -exec $SED \
     "s|__MODULE__|$MODULE|g; \
      s|__APP_SLUG__|$APP_SLUG|g; \
      s|__IMAGE_REPOSITORY__|$IMAGE_REPOSITORY|g" \
