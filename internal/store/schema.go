@@ -17,7 +17,7 @@ func (s *Store) CurrentSchemaVersion(ctx context.Context) (int, error) {
 	})
 
 	err := silentDB.WithContext(ctx).
-		Raw(`SELECT version FROM public.__APP_SLUG___schema_version LIMIT 1`).
+		Raw(`SELECT version FROM public.__APP_SLUG_DB___schema_version LIMIT 1`).
 		Scan(&version).Error
 
 	if err != nil {

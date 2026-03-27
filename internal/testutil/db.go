@@ -20,9 +20,9 @@ func OpenTestDB(t *testing.T) *TestDB {
 	cfg := store.Config{
 		Host:     getenv("POSTGRESQL_HOST", "localhost"),
 		Port:     getenvInt("POSTGRESQL_PORT", 5432),
-		Database: getenv("POSTGRESQL_DATABASE", "__APP_SLUG___test"),
-		Username: getenv("POSTGRESQL_USERNAME", "__APP_SLUG__"),
-		Password: getenv("POSTGRESQL_PASSWORD", "__APP_SLUG__"),
+		Database: getenv("POSTGRESQL_DATABASE", "__APP_SLUG_DB___test"),
+		Username: getenv("POSTGRESQL_USERNAME", "__APP_SLUG_DB__"),
+		Password: getenv("POSTGRESQL_PASSWORD", "__APP_SLUG_DB__"),
 		Schema:   getenv("POSTGRESQL_SCHEMA", "public"),
 		Timezone: getenv("POSTGRESQL_TIMEZONE", "UTC"),
 		LogSql:   getenvBool("POSTGRESQL_LOG_SQL", false),

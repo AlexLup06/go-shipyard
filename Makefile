@@ -3,7 +3,7 @@ ifneq (,$(wildcard .env))
 	export
 endif
 
-POSTGRESQL_SCHEMA ?= __APP_SLUG__
+POSTGRESQL_SCHEMA ?= __APP_SLUG_DB__ 
 
 DOCKER_COMPOSE_FILE = docker-compose.yaml
 DOCKER_COMPOSE_DEV  = docker compose -f $(DOCKER_COMPOSE_FILE)
@@ -13,10 +13,10 @@ POSTGRES_SERVICE   = postgres
 APP_SERVICE   = __APP_SLUG__
 MIGRATIONS_SERVICE = migrate
 
-TEST_DB_NAME       ?= __APP_SLUG___test
+TEST_DB_NAME       ?= __APP_SLUG_DB___test
 TEST_DB_HOST       ?= postgres
 TEST_DB_PORT       ?= 5432
-TEST_DB_SCHEMA     ?= __APP_SLUG__
+TEST_DB_SCHEMA     ?=__APP_SLUG_DB__ 
 TEST_DB_TIMEZONE   ?= UTC
 TEST_DB_LOG_SQL    ?= false
 

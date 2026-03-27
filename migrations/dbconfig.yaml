@@ -3,5 +3,5 @@ default:
   datasource: host=${POSTGRESQL_HOST} port=${POSTGRESQL_PORT} dbname=${POSTGRESQL_DATABASE} user=${POSTGRESQL_USERNAME} password=${POSTGRESQL_PASSWORD} sslmode=disable
   schema: public
   dir: .
-  table: __APP_SLUG___schema_migrations
+  table: __APP_SLUG_DB___schema_migrations
 

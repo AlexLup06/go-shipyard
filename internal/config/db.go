@@ -11,7 +11,7 @@ type DB struct {
 	Username string `env:"POSTGRESQL_USERNAME,required"`
 	Password string `env:"POSTGRESQL_PASSWORD,required"`
 	Database string `env:"POSTGRESQL_DATABASE,required"`
-	Schema   string `env:"POSTGRESQL_SCHEMA,default=__APP_SLUG__"`
+	Schema   string `env:"POSTGRESQL_SCHEMA,default=__APP_SLUG_DB__"`
 	Timezone string `env:"POSTGRESQL_TIMEZONE,default=UTC"`
 	LogSQL   bool   `env:"POSTGRESQL_LOG_SQL,default=false"`
 
