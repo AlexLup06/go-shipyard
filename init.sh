@@ -3,6 +3,7 @@ set -euo pipefail
 
 MODULE=""
 APP_SLUG=""
+APP_SLUG_DB=""
 IMAGE_REPOSITORY=""
 
 # Parse args
@@ -40,14 +41,18 @@ if [ -z "$MODULE" ] || [ -z "$APP_SLUG" ] || [ -z "$IMAGE_REPOSITORY" ]; then
   exit 1
 fi
 
+# Derive DB-safe slug
+APP_SLUG_DB="${APP_SLUG//-/_}"
+
 echo "Initializing project..."
 echo "MODULE=$MODULE"
 echo "APP_SLUG=$APP_SLUG"
+echo "APP_SLUG_DB=$APP_SLUG_DB"
 echo "IMAGE_REPOSITORY=$IMAGE_REPOSITORY"
 
 # rename cmd directory
 if [ -d "cmd/__APP_SLUG__" ]; then
-	mv cmd/__APP_SLUG__ "cmd/$APP_SLUG"
+  mv cmd/__APP_SLUG__ "cmd/$APP_SLUG"
 fi
 
 # Replace placeholders
@@ -61,6 +66,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
       -name "*.yml" -o \
       -name "*.json" -o \
       -name "*.sh" -o \
+      -name "*.templ" -o \
       -name "Dockerfile*" -o \
       -name "Makefile" -o \
       -name "Caddyfile" -o \
@@ -70,6 +76,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     -exec sed -i '' \
       "s|__MODULE__|$MODULE|g; \
        s|__APP_SLUG__|$APP_SLUG|g; \
+       s|__APP_SLUG_DB__|$APP_SLUG_DB|g; \
        s|__IMAGE_REPOSITORY__|$IMAGE_REPOSITORY|g" \
     {} +
 else
@@ -79,6 +86,7 @@ else
       -name ".env*" -o \
       -name "go.mod" -o \
       -name "*.yaml" -o \
+      -name "*.templ" -o \
       -name "*.yml" -o \
       -name "*.json" -o \
       -name "*.sh" -o \
@@ -91,6 +99,7 @@ else
     -exec sed -i \
       "s|__MODULE__|$MODULE|g; \
        s|__APP_SLUG__|$APP_SLUG|g; \
+       s|__APP_SLUG_DB__|$APP_SLUG_DB|g; \
        s|__IMAGE_REPOSITORY__|$IMAGE_REPOSITORY|g" \
     {} +
 fi
@@ -98,6 +107,7 @@ fi
 # Go cleanup
 go mod tidy
 
+# Frontend deps
 if [ -d "frontend" ]; then
   (cd frontend && npm ci)
 fi
