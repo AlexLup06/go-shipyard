@@ -1,5 +1,5 @@
 - hosts: app_servers
-  become: false
+  become: true
   vars:
     app_slug: "__APP_SLUG__"
     deploy_path: "/opt/{{ app_slug }}"
