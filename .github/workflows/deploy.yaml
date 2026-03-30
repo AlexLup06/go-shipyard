@@ -164,9 +164,14 @@ jobs:
           script: |
             set -euo pipefail
 
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
-              -u "${{ secrets.GHCR_USERNAME }}" \
-              --password-stdin
+            if [ -n "${{ secrets.GHCR_TOKEN }}" ]; then
+              echo "Logging into GHCR..."
+              echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
+                -u "${{ secrets.GHCR_USERNAME }}" \
+                --password-stdin
+            else
+              echo "No GHCR token provided, skipping login"
+            fi
 
             APP_SLUG="__APP_SLUG__"
             DEPLOY_DIR="/opt/${APP_SLUG}"
