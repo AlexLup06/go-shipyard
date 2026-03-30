@@ -44,6 +44,8 @@ services:
       dockerfile: deploy/docker/Dockerfile.dev
     env_file:
       - .env
+    volumes:
+      - .:/app
     depends_on:
       migrate:
         condition: service_completed_successfully
