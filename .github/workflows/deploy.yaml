@@ -164,6 +164,10 @@ jobs:
           script: |
             set -euo pipefail
 
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
+              -u "${{ secrets.GHCR_USERNAME }}" \
+              --password-stdin
+
             APP_SLUG="__APP_SLUG__"
             DEPLOY_DIR="/opt/${APP_SLUG}"
             DEPLOY_TAG="${{ needs.detect-changes.outputs.deploy_tag }}"
