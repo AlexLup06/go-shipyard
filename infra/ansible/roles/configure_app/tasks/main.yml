@@ -3,18 +3,29 @@
     path: "{{ deploy_path }}"
     state: directory
     mode: "0755"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
 
 - name: Upload .env
   copy:
     src: "{{ playbook_dir }}/../../deploy/env/.env.prod"
     dest: "{{ deploy_path }}/.env"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
 
 - name: Upload compose file
   copy:
     src: "{{ playbook_dir }}/../../deploy/compose/docker-compose.prod.yaml"
     dest: "{{ deploy_path }}/docker-compose.prod.yaml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
 
 - name: Upload Caddyfile
   copy:
     src: "{{ playbook_dir }}/../../deploy/caddy/Caddyfile"
     dest: "{{ deploy_path }}/Caddyfile"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
