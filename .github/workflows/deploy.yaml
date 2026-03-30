@@ -1,16 +1,9 @@
 name: Deploy
 
 on:
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: Git ref to deploy (branch, tag, or commit SHA)
-        required: true
-        default: main
-      release_tag:
-        description: Optional release tag for the images (for example v1.0.0)
-        required: false
-        default: ""
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: read
@@ -21,51 +14,80 @@ env:
   MIGRATIONS_IMAGE_NAME: __IMAGE_REPOSITORY__-migrations
 
 jobs:
-  build-and-push:
+  detect-changes:
     runs-on: ubuntu-latest
-
     outputs:
+      app_changed: ${{ steps.detect.outputs.app_changed }}
+      migrations_changed: ${{ steps.detect.outputs.migrations_changed }}
       deploy_tag: ${{ steps.meta.outputs.deploy_tag }}
-      app_tags: ${{ steps.meta.outputs.app_tags }}
-      migrations_tags: ${{ steps.meta.outputs.migrations_tags }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.ref }}
+          fetch-depth: 0
 
-      - name: Set image tags
+      - name: Set deploy tag
         id: meta
+        run: echo "deploy_tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Detect changed files
+        id: detect
         shell: bash
         run: |
           set -euo pipefail
 
-          SHA_TAG="$(git rev-parse HEAD)"
-          RELEASE_TAG="${{ inputs.release_tag }}"
-          DEPLOY_TAG="$SHA_TAG"
+          CURRENT_TAG="${GITHUB_REF_NAME}"
+          CURRENT_COMMIT="$(git rev-list -n 1 "$CURRENT_TAG")"
 
-          if [ -n "$RELEASE_TAG" ]; then
-            DEPLOY_TAG="$RELEASE_TAG"
+          PREV_TAG="$(git tag --sort=-creatordate | grep -vx "$CURRENT_TAG" | head -n 1 || true)"
+
+          if [ -n "$PREV_TAG" ]; then
+            BASE_COMMIT="$(git rev-list -n 1 "$PREV_TAG")"
+            CHANGED_FILES="$(git diff --name-only "$BASE_COMMIT" "$CURRENT_COMMIT")"
+          else
+            CHANGED_FILES="$(git ls-tree -r --name-only "$CURRENT_COMMIT")"
           fi
 
-          {
-            echo "deploy_tag=$DEPLOY_TAG"
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
 
-            echo "app_tags<<EOF"
-            echo "${IMAGE_NAME}:${SHA_TAG}"
-            if [ -n "$RELEASE_TAG" ]; then
-              echo "${IMAGE_NAME}:${RELEASE_TAG}"
-            fi
-            echo "EOF"
+          app_changed=false
+          migrations_changed=false
 
-            echo "migrations_tags<<EOF"
-            echo "${MIGRATIONS_IMAGE_NAME}:${SHA_TAG}"
-            if [ -n "$RELEASE_TAG" ]; then
-              echo "${MIGRATIONS_IMAGE_NAME}:${RELEASE_TAG}"
+          while IFS= read -r file; do
+            # App changes
+            if [[ "$file" == cmd/* ]]; then app_changed=true; fi
+            if [[ "$file" == internal/* ]]; then app_changed=true; fi
+            if [[ "$file" == frontend/* ]]; then app_changed=true; fi
+            if [[ "$file" == internal/http/templates/* ]]; then app_changed=true; fi
+            if [[ "$file" == deploy/scripts/build_static.sh ]]; then app_changed=true; fi
+            if [[ "$file" == go.mod ]]; then app_changed=true; fi
+            if [[ "$file" == go.sum ]]; then app_changed=true; fi
+            if [[ "$file" == deploy/docker/Dockerfile ]]; then app_changed=true; fi
+            if [[ "$file" == docker-compose.yaml ]]; then app_changed=true; fi
+
+            # Migration changes
+            if [[ "$file" == migrations/* ]]; then migrations_changed=true; fi
+            if [[ "$file" == deploy/docker/Dockerfile.migrate ]]; then migrations_changed=true; fi
+
+            # Early exit if both detected
+            if [[ "$app_changed" == true && "$migrations_changed" == true ]]; then
+              break
             fi
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          done <<< "$CHANGED_FILES"
+
+          echo "app_changed=$app_changed" >> "$GITHUB_OUTPUT"
+          echo "migrations_changed=$migrations_changed" >> "$GITHUB_OUTPUT"
+
+  build-and-push-app:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.app_changed == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
@@ -83,21 +105,53 @@ jobs:
           context: .
           file: deploy/docker/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           build-args: |
-            VERSION=${{ steps.meta.outputs.deploy_tag }}
-          tags: ${{ steps.meta.outputs.app_tags }}
+            VERSION=${{ needs.detect-changes.outputs.deploy_tag }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ needs.detect-changes.outputs.deploy_tag }}
+
+  build-and-push-migrations:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.migrations_changed == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push migrations image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: deploy/docker/Dockerfile.migrate
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.migrations_tags }}
+          tags: |
+            ${{ env.MIGRATIONS_IMAGE_NAME }}:${{ needs.detect-changes.outputs.deploy_tag }}
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs:
+      - detect-changes
+      - build-and-push-app
+      - build-and-push-migrations
+    if: |
+      always() &&
+      needs.detect-changes.result == 'success' &&
+      (needs.detect-changes.outputs.app_changed == 'true' || needs.detect-changes.outputs.migrations_changed == 'true') &&
+      (needs.build-and-push-app.result == 'success' || needs.build-and-push-app.result == 'skipped') &&
+      (needs.build-and-push-migrations.result == 'success' || needs.build-and-push-migrations.result == 'skipped')
 
     steps:
       - name: Deploy over SSH
@@ -106,35 +160,53 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT }}
           script: |
             set -euo pipefail
 
             APP_SLUG="__APP_SLUG__"
             DEPLOY_DIR="/opt/${APP_SLUG}"
-            DEPLOY_TAG="${{ needs.build-and-push.outputs.deploy_tag }}"
+            DEPLOY_TAG="${{ needs.detect-changes.outputs.deploy_tag }}"
+            APP_CHANGED="${{ needs.detect-changes.outputs.app_changed }}"
+            MIGRATIONS_CHANGED="${{ needs.detect-changes.outputs.migrations_changed }}"
 
             cd "$DEPLOY_DIR"
 
-            echo "Updating image tags in .env"
-            sed -i "s/^APP_IMAGE_TAG=.*/APP_IMAGE_TAG=${DEPLOY_TAG}/" .env || \
-              echo "APP_IMAGE_TAG=${DEPLOY_TAG}" >> .env
+            if [ "$APP_CHANGED" = "true" ]; then
+              echo "Updating APP_IMAGE_TAG=${DEPLOY_TAG}"
+              if grep -q '^APP_IMAGE_TAG=' .env; then
+                sed -i "s/^APP_IMAGE_TAG=.*/APP_IMAGE_TAG=${DEPLOY_TAG}/" .env
+              else
+                echo "APP_IMAGE_TAG=${DEPLOY_TAG}" >> .env
+              fi
+            fi
 
-            sed -i "s/^MIGRATIONS_IMAGE_TAG=.*/MIGRATIONS_IMAGE_TAG=${DEPLOY_TAG}/" .env || \
-              echo "MIGRATIONS_IMAGE_TAG=${DEPLOY_TAG}" >> .env
+            if [ "$MIGRATIONS_CHANGED" = "true" ]; then
+              echo "Updating MIGRATIONS_IMAGE_TAG=${DEPLOY_TAG}"
+              if grep -q '^MIGRATIONS_IMAGE_TAG=' .env; then
+                sed -i "s/^MIGRATIONS_IMAGE_TAG=.*/MIGRATIONS_IMAGE_TAG=${DEPLOY_TAG}/" .env
+              else
+                echo "MIGRATIONS_IMAGE_TAG=${DEPLOY_TAG}" >> .env
+              fi
+            fi
 
-            echo "Pulling images..."
-            docker compose -f docker-compose.prod.yaml --env-file .env pull
-
-            echo "Starting postgres..."
+            echo "Starting postgres if needed..."
             docker compose -f docker-compose.prod.yaml --env-file .env up -d postgres
 
-            echo "Running Authara migrations..."
-            docker compose -f docker-compose.prod.yaml --env-file .env run --rm authara-migrations
+            if [ "$MIGRATIONS_CHANGED" = "true" ]; then
+              echo "Pulling migrations image..."
+              docker compose -f docker-compose.prod.yaml --env-file .env pull migrate
 
-            echo "Running app migrations..."
-            docker compose -f docker-compose.prod.yaml --env-file .env run --rm migrate
+              echo "Running app migrations..."
+              docker compose -f docker-compose.prod.yaml --env-file .env run --rm migrate
+            fi
 
-            echo "Starting services..."
-            docker compose -f docker-compose.prod.yaml --env-file .env up -d authara __APP_SLUG__ gateway caddy
+            if [ "$APP_CHANGED" = "true" ]; then
+              echo "Pulling app image..."
+              docker compose -f docker-compose.prod.yaml --env-file .env pull __APP_SLUG__
 
-            echo "Deploy complete: ${DEPLOY_TAG}"
+              echo "Restarting app container only..."
+              docker compose -f docker-compose.prod.yaml --env-file .env up -d --no-deps __APP_SLUG__
+            fi
+
+            echo "Deploy finished: ${DEPLOY_TAG}"
